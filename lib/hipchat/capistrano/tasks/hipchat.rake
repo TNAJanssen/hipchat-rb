@@ -148,7 +148,7 @@ namespace :hipchat do
   end
 
   def commit_logs
-    from = "0951af81ce3391d9dcd8a2e727b1d5f37f108816"
+    from = fetch(:previous_revision)
     to   = fetch(:current_revision)
 
     log_hashes = []
