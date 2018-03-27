@@ -3,10 +3,33 @@ require 'hipchat'
 namespace :hipchat do
 
   task :notify_deploy_started do
+    from = fetch(:previous_revision)
+    to   = fetch(:current_revision)
     send_message("#{human} is deploying #{deployment_name} to #{environment_string}.", send_options)
   end
 
   task :notify_deploy_finished do
+    if fetch(:hipchat_commit_log, false)
+      if commit_logs
+        logs = commit_logs.uniq
+        unless logs.empty?
+          client = Capistrano::Jira.client
+
+          issueSummaries = {}
+
+          client.Issue.jql("key in (#{logs.join(',')})", fields:[:summary]).each do |issue, key|
+            issueSummaries[issue.key] = issue.summary
+          end
+
+          logs.map! do |log|
+            title = issueSummaries[log]
+            "#{log} #{title}"
+          end
+          send_message(logs.join("<br/>"), send_options)
+        end
+      end
+    end
+
     send_options.merge!(:color => success_message_color)
     send_message("#{human} finished deploying #{deployment_name} to #{environment_string}.", send_options)
   end
@@ -124,7 +147,41 @@ namespace :hipchat do
     fetch(:hipchat_env, fetch(:rack_env, fetch(:rails_env, fetch(:stage))))
   end
 
-  before 'deploy:starting', 'hipchat:notify_deploy_started'
+  def commit_logs
+    from = "0951af81ce3391d9dcd8a2e727b1d5f37f108816"
+    to   = fetch(:current_revision)
+
+    log_hashes = []
+
+    if from != to
+      logs = `git log --no-merges --pretty=format:'%H$$%at$$%an$$%s' #{from}..#{to}`
+      logs.split(/\n/).each do |log|
+        ll = log.split(/\$\$/)
+        log_hashes << {revision: ll[0], time: Time.at(ll[1].to_i), user: ll[2], message: ll[3]}
+      end
+
+      format = fetch(:hipchat_commit_log_format, ":message")
+      time_format = fetch(:hipchat_commit_log_time_format, "%Y/%m/%d %H:%M:%S")
+      message_format = fetch(:hipchat_commit_log_message_format, nil)
+
+      log_hashes.map do |log_hash|
+        if message_format
+          matches = log_hash[:message].match(/#{message_format}/)
+          log_hash[:message] = if matches
+                                 matches[0]
+                               else
+                                 ''
+                               end
+        end
+        log_hash[:time] &&= log_hash[:time].localtime.strftime(time_format)
+        log_hash.inject(format) do |l, (k, v)|
+          l.gsub(/:#{k}/, v.to_s)
+        end
+      end
+    end
+  end
+
+  after 'deploy:starting', 'hipchat:notify_deploy_started'
   after 'deploy:finished', 'hipchat:notify_deploy_finished'
   if Rake::Task.task_defined? 'deploy:failed'
     after 'deploy:failed', 'hipchat:notify_deploy_reverted'
