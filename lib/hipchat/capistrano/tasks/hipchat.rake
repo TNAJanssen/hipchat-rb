@@ -25,6 +25,7 @@ namespace :hipchat do
             title = issueSummaries[log]
             "#{log} #{title}"
           end
+          send_options.merge!(:color => changes_message_color)
           send_message(logs.join("<br/>"), send_options)
         end
       end
@@ -54,7 +55,6 @@ namespace :hipchat do
     hipchat_room_name = fetch(:hipchat_room_name)
     hipchat_options = fetch(:hipchat_options, {})
 
-    hipchat_client = fetch(:hipchat_client, HipChat::Client.new(hipchat_token, hipchat_options))
 
     if hipchat_room_name.is_a?(String)
       rooms = [hipchat_room_name]
@@ -64,8 +64,9 @@ namespace :hipchat do
       rooms = hipchat_room_name
     end
 
-    rooms.each { |room|
+    rooms.each { |room, token|
       begin
+        hipchat_client = fetch(:hipchat_client, HipChat::Client.new(token, hipchat_options))
         hipchat_client[room].send(deploy_user, message, options)
       rescue => e
         puts e.message
@@ -109,6 +110,11 @@ namespace :hipchat do
 
   def success_message_color
     fetch(:hipchat_success_color, 'green')
+  end
+
+
+  def changes_message_color
+    fetch(:hipchat_changes_color, 'purple')
   end
 
   def failed_message_color
