@@ -35,7 +35,7 @@ namespace :hipchat do
           send_options.merge!(:color => changes_message_color)
 
           body = "Hoi Allemaal,<br/><br/>
-Ik heb zojuist StoreInfo release 20180329p1 op de volgende server(s) geinstalleerd:
+Ik heb zojuist SRS ERP release #{deployment_name} op de volgende server(s) geinstalleerd:
 <ul>
   #{hosts.join('')}
 </ul>
