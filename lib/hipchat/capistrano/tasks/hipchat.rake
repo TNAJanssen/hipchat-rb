@@ -30,7 +30,13 @@ namespace :hipchat do
           # send_message(logs.join("<br/>"), send_options)
           send_email(
               "#{human} finished deploying #{deployment_name} to #{environment_string}.",
-              logs.join("<br/>")
+              logs.join("<br/>"),
+              {
+                host => fetch(':smtp_host'),
+                port => fetch(':smtp_port'),
+                user_name => fetch(':smtp_user'),
+                password => fetch(':smtp_password'),
+              }
           )
         end
       end
@@ -45,12 +51,19 @@ namespace :hipchat do
     send_message("#{human} cancelled deployment of #{deployment_name} to #{environment_string}.", send_options)
   end
 
-  def send_email(subject, body)
+  def send_email(subject, body, options = {
+      host => '',
+      port => '',
+      user_name => '',
+      password => '',
+      tls => true,
+  })
     Notifier.deploy_notification(
         fetch(':email_from'),
         fetch(':email_to'),
         subject,
         body,
+        options
     ).deliver
   end
 
