@@ -1,10 +1,11 @@
 require 'hipchat'
+require 'notifier'
 
 namespace :hipchat do
 
   task :notify_deploy_started do
     from = fetch(:previous_revision)
-    to   = fetch(:current_revision)
+    to = fetch(:current_revision)
     send_message("#{human} is deploying #{deployment_name} to #{environment_string}.", send_options)
   end
 
@@ -17,7 +18,7 @@ namespace :hipchat do
 
           issueSummaries = {}
 
-          client.Issue.jql("key in (#{logs.join(',')})", fields:[:summary]).each do |issue, key|
+          client.Issue.jql("key in (#{logs.join(',')})", fields: [:summary]).each do |issue, key|
             issueSummaries[issue.key] = issue.summary
           end
 
@@ -26,13 +27,17 @@ namespace :hipchat do
             "#{log} #{title}"
           end
           send_options.merge!(:color => changes_message_color)
-          send_message(logs.join("<br/>"), send_options)
+          # send_message(logs.join("<br/>"), send_options)
+          send_email(
+              "#{human} finished deploying #{deployment_name} to #{environment_string}.",
+              logs.join("<br/>")
+          )
         end
       end
     end
 
-    send_options.merge!(:color => success_message_color)
-    send_message("#{human} finished deploying #{deployment_name} to #{environment_string}.", send_options)
+    # send_options.merge!(:color => success_message_color)
+    # send_message("#{human} finished deploying #{deployment_name} to #{environment_string}.", send_options)
   end
 
   task :notify_deploy_reverted do
@@ -40,9 +45,18 @@ namespace :hipchat do
     send_message("#{human} cancelled deployment of #{deployment_name} to #{environment_string}.", send_options)
   end
 
+  def send_email(subject, body)
+    Notifier.deploy_notification(
+        fetch(':email_from'),
+        fetch(':email_to'),
+        subject,
+        body,
+    ).deliver
+  end
+
   def send_options
     return @send_options if defined?(@send_options)
-    @send_options = message_format ? {:message_format => message_format } : {}
+    @send_options = message_format ? {:message_format => message_format} : {}
     @send_options.merge!(:notify => message_notification)
     @send_options.merge!(:color => message_color)
     @send_options
@@ -64,7 +78,7 @@ namespace :hipchat do
       rooms = hipchat_room_name
     end
 
-    rooms.each { |room, token|
+    rooms.each {|room, token|
       begin
         hipchat_client = fetch(:hipchat_client, HipChat::Client.new(token, hipchat_options))
         hipchat_client[room].send(deploy_user, message, options)
@@ -155,7 +169,7 @@ namespace :hipchat do
 
   def commit_logs
     from = fetch(:previous_revision)
-    to   = fetch(:current_revision)
+    to = fetch(:current_revision)
 
     log_hashes = []
 

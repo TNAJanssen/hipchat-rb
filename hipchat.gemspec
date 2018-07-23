@@ -31,6 +31,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "httparty"
   spec.add_dependency "mimemagic"
+  spec.add_dependency "actionmailer"
 
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "rr"
