@@ -44,4 +44,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rdoc', '> 2.4.2'
   spec.add_development_dependency 'tins', '~> 1.6.0'
   spec.add_development_dependency 'coveralls'
+  spec.add_development_dependency 'actionmailer'
 end
