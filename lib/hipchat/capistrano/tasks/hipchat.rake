@@ -90,8 +90,8 @@ In deze release zaten de volgende tickets: <br/><br/>
     }
 
     Notifier.deploy_notification(
-        emailFrom,
         emailTo,
+        emailFrom,
         subject,
         body
     ).deliver
