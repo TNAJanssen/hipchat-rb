@@ -7,22 +7,12 @@ ActionMailer::Base.smtp_settings = {
 
 class Notifier < ActionMailer::Base
 
-  def deploy_notification(toEmail, fromEmail, subject, body, options = {
-      host => '',
-      port => '',
-      user_name => '',
-      password => '',
-      tls => true,
-  })
+  def deploy_notification(toEmail, fromEmail, subject, body)
     mail(:to => toEmail,
          :from => fromEmail,
-         :address => options.host,
-         :port => options.port,
-         :user_name => options.user_name,
-         :password => options.password,
-         :tls => options.tls,
-         :subject => subject) do |format|
-      format.html {render :text => body}
-    end
+         :subject => subject,
+         :body => body,
+         :content_type => "text/html"
+    )
   end
 end

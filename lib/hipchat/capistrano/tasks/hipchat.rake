@@ -10,9 +10,15 @@ namespace :hipchat do
   end
 
   task :notify_deploy_finished do
+    hosts = []
+    on roles(:all) do | host|
+      hosts.push("<li>#{host.hostname}</li>")
+    end
+
     if fetch(:hipchat_commit_log, false)
       if commit_logs
         logs = commit_logs.uniq
+        jira = fetch(:jira_site)
         unless logs.empty?
           client = Capistrano::Jira.client
 
@@ -24,28 +30,40 @@ namespace :hipchat do
 
           logs.map! do |log|
             title = issueSummaries[log]
-            "#{log} #{title}"
+            "<li><a href='#{jira}/browse/#{log}'>#{log} #{title}</a></li>"
           end
           send_options.merge!(:color => changes_message_color)
-          # send_message(logs.join("<br/>"), send_options)
+
+          body = "Hoi Allemaal,<br/><br/>
+Ik heb zojuist StoreInfo release 20180329p1 op de volgende server(s) geinstalleerd:
+<ul>
+  #{hosts.join('')}
+</ul>
+<br/>
+In deze release zaten de volgende tickets: <br/><br/>
+<ul>#{logs.join("")}</ul>
+<br/>Groeten,<br/><br/>#{human}"
+
+          send_message(body, send_options)
           send_email(
-              fetch(':email_from'),
-              fetch(':email_to'),
+              fetch(:email_from),
+              fetch(:email_to),
               "#{human} finished deploying #{deployment_name} to #{environment_string}.",
-              logs.join("<br/>"),
+              body,
               {
-                host => fetch(':email_smtp_host'),
-                port => fetch(':email_smtp_port'),
-                user_name => fetch(':email_smtp_user'),
-                password => fetch(':email_smtp_password'),
+                'host' => fetch(:email_smtp_host),
+                'port' => fetch(:email_smtp_port),
+                'user_name' => fetch(:email_smtp_user),
+                'password' => fetch(:email_smtp_password),
+                'tls' => fetch(:email_smtp_tls),
               }
           )
         end
       end
     end
 
-    # send_options.merge!(:color => success_message_color)
-    # send_message("#{human} finished deploying #{deployment_name} to #{environment_string}.", send_options)
+    send_options.merge!(:color => success_message_color)
+    send_message("#{human} finished deploying #{deployment_name} to #{environment_string}.", send_options)
   end
 
   task :notify_deploy_reverted do
@@ -54,18 +72,28 @@ namespace :hipchat do
   end
 
   def send_email(emailFrom, emailTo, subject, body, options = {
-      host => '',
-      port => '',
-      user_name => '',
-      password => '',
-      tls => true,
+      'host' => '',
+      'port' => '',
+      'user_name' => '',
+      'password' => '',
+      'tls' => true,
   })
+    Notifier.delivery_method = :smtp
+    Notifier.smtp_settings = {
+        :address => options['host'],
+        :port => options['port'],
+        :user_name => options['user_name'],
+        :password => options['password'],
+        :tls => options['tls'],
+        :authentication => "plain",
+        :enable_starttls_auto => true
+    }
+
     Notifier.deploy_notification(
         emailFrom,
         emailTo,
         subject,
-        body,
-        options
+        body
     ).deliver
   end
 
