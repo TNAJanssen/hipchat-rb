@@ -29,13 +29,15 @@ namespace :hipchat do
           send_options.merge!(:color => changes_message_color)
           # send_message(logs.join("<br/>"), send_options)
           send_email(
+              fetch(':email_from'),
+              fetch(':email_to'),
               "#{human} finished deploying #{deployment_name} to #{environment_string}.",
               logs.join("<br/>"),
               {
-                host => fetch(':smtp_host'),
-                port => fetch(':smtp_port'),
-                user_name => fetch(':smtp_user'),
-                password => fetch(':smtp_password'),
+                host => fetch(':email_smtp_host'),
+                port => fetch(':email_smtp_port'),
+                user_name => fetch(':email_smtp_user'),
+                password => fetch(':email_smtp_password'),
               }
           )
         end
@@ -51,7 +53,7 @@ namespace :hipchat do
     send_message("#{human} cancelled deployment of #{deployment_name} to #{environment_string}.", send_options)
   end
 
-  def send_email(subject, body, options = {
+  def send_email(emailFrom, emailTo, subject, body, options = {
       host => '',
       port => '',
       user_name => '',
@@ -59,8 +61,8 @@ namespace :hipchat do
       tls => true,
   })
     Notifier.deploy_notification(
-        fetch(':email_from'),
-        fetch(':email_to'),
+        emailFrom,
+        emailTo,
         subject,
         body,
         options
